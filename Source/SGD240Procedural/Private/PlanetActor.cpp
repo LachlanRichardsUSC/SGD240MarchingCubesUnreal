@@ -172,53 +172,80 @@ void APlanetActor::GeneratePlanet()
     TArray<FVector> Vertices;
     TArray<int32> Triangles;
 
-    // Simple voxel grid (1x1x1) for debugging
-    int GridSize = 1;  
-    float VoxelSize = 100.0f;  // Large size to make it visible
+    int GridSize = 5;  // A small grid for testing (5x5x5 cubes)
+    float VoxelSize = 100.0f;  // Size of each voxel (cube)
+    float Gap = 10.0f;  // Introduce a gap to separate cubes
 
-    FVector BasePosition(0, 0, 0);
+    // Calculate the center of the voxel grid
+    FVector GridCenter = FVector(GridSize / 2.0f, GridSize / 2.0f, GridSize / 2.0f) * (VoxelSize + Gap);
 
-    // Create 8 corners of a single voxel (cube)
-    Vertices.Add(BasePosition);                                // Vertex 0
-    Vertices.Add(BasePosition + FVector(VoxelSize, 0, 0));     // Vertex 1
-    Vertices.Add(BasePosition + FVector(VoxelSize, VoxelSize, 0));  // Vertex 2
-    Vertices.Add(BasePosition + FVector(0, VoxelSize, 0));     // Vertex 3
-    Vertices.Add(BasePosition + FVector(0, 0, VoxelSize));     // Vertex 4
-    Vertices.Add(BasePosition + FVector(VoxelSize, 0, VoxelSize));  // Vertex 5
-    Vertices.Add(BasePosition + FVector(VoxelSize, VoxelSize, VoxelSize)); // Vertex 6
-    Vertices.Add(BasePosition + FVector(0, VoxelSize, VoxelSize));  // Vertex 7
+    // Loop through the grid to generate each voxel (cube)
+    for (int x = 0; x < GridSize; x++)
+    {
+        for (int y = 0; y < GridSize; y++)
+        {
+            for (int z = 0; z < GridSize; z++)
+            {
+                // Calculate the base position relative to the grid center
+                FVector BasePosition = FVector(
+                    x * (VoxelSize + Gap), 
+                    y * (VoxelSize + Gap), 
+                    z * (VoxelSize + Gap)
+                ) - GridCenter;  // Subtract grid center to align with the origin
 
-    // Create triangles for the sides of the voxel (6 faces, each made of 2 triangles)
-    // Example for one face (bottom face):
-    // Front face
-    Triangles.Add(0); Triangles.Add(1); Triangles.Add(2);  // First triangle
-    Triangles.Add(0); Triangles.Add(2); Triangles.Add(3);  // Second triangle
+                int32 StartIndex = Vertices.Num();
 
-    // Back face
-    Triangles.Add(4); Triangles.Add(6); Triangles.Add(5);  // First triangle
-    Triangles.Add(4); Triangles.Add(7); Triangles.Add(6);  // Second triangle
+                // Add cube vertices as before
+                Vertices.Add(BasePosition);                                // Vertex 0
+                Vertices.Add(BasePosition + FVector(VoxelSize, 0, 0));     // Vertex 1
+                Vertices.Add(BasePosition + FVector(VoxelSize, VoxelSize, 0));  // Vertex 2
+                Vertices.Add(BasePosition + FVector(0, VoxelSize, 0));     // Vertex 3
+                Vertices.Add(BasePosition + FVector(0, 0, VoxelSize));     // Vertex 4
+                Vertices.Add(BasePosition + FVector(VoxelSize, 0, VoxelSize));  // Vertex 5
+                Vertices.Add(BasePosition + FVector(VoxelSize, VoxelSize, VoxelSize)); // Vertex 6
+                Vertices.Add(BasePosition + FVector(0, VoxelSize, VoxelSize));  // Vertex 7
 
-    // Left face
-    Triangles.Add(0); Triangles.Add(3); Triangles.Add(7);  // First triangle
-    Triangles.Add(0); Triangles.Add(7); Triangles.Add(4);  // Second triangle
+                // Check if there's a neighboring cube and skip internal faces
+                if (x == 0) // No neighbor on the left
+                {
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 3); Triangles.Add(StartIndex + 7);
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 7); Triangles.Add(StartIndex + 4);
+                }
+                if (x == GridSize - 1) // No neighbor on the right
+                {
+                    Triangles.Add(StartIndex + 1); Triangles.Add(StartIndex + 5); Triangles.Add(StartIndex + 6);
+                    Triangles.Add(StartIndex + 1); Triangles.Add(StartIndex + 6); Triangles.Add(StartIndex + 2);
+                }
+                if (y == 0) // No neighbor below
+                {
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 4); Triangles.Add(StartIndex + 5);
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 5); Triangles.Add(StartIndex + 1);
+                }
+                if (y == GridSize - 1) // No neighbor above
+                {
+                    Triangles.Add(StartIndex + 3); Triangles.Add(StartIndex + 2); Triangles.Add(StartIndex + 6);
+                    Triangles.Add(StartIndex + 3); Triangles.Add(StartIndex + 6); Triangles.Add(StartIndex + 7);
+                }
+                if (z == 0) // No neighbor in front
+                {
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 1); Triangles.Add(StartIndex + 2);
+                    Triangles.Add(StartIndex + 0); Triangles.Add(StartIndex + 2); Triangles.Add(StartIndex + 3);
+                }
+                if (z == GridSize - 1) // No neighbor behind
+                {
+                    Triangles.Add(StartIndex + 4); Triangles.Add(StartIndex + 6); Triangles.Add(StartIndex + 5);
+                    Triangles.Add(StartIndex + 4); Triangles.Add(StartIndex + 7); Triangles.Add(StartIndex + 6);
+                }
+            }
+        }
+    }
 
-    // Right face
-    Triangles.Add(1); Triangles.Add(5); Triangles.Add(6);  // First triangle
-    Triangles.Add(1); Triangles.Add(6); Triangles.Add(2);  // Second triangle
-
-    // Top face
-    Triangles.Add(3); Triangles.Add(2); Triangles.Add(6);  // First triangle
-    Triangles.Add(3); Triangles.Add(6); Triangles.Add(7);  // Second triangle
-
-    // Bottom face
-    Triangles.Add(0); Triangles.Add(4); Triangles.Add(5);  // First triangle
-    Triangles.Add(0); Triangles.Add(5); Triangles.Add(1);  // Second triangle
-
-    // Add other faces if needed, but for now we'll test with just this.
-
-    // Update the procedural mesh component
+    // Create the mesh for the voxel grid
     PlanetMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, TArray<FVector>(), TArray<FVector2D>(), TArray<FLinearColor>(), TArray<FProcMeshTangent>(), true);
 
     UE_LOG(LogTemp, Warning, TEXT("Voxel grid created with %d vertices and %d triangles"), Vertices.Num(), Triangles.Num() / 3);
 }
+
+
+
 
