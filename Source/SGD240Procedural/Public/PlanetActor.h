@@ -3,58 +3,59 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ProceduralMeshComponent.h"
+#include "MarchingCubesTable.h"
 #include "PlanetActor.generated.h"
 
 USTRUCT()
 struct FVoxel
 {
-	GENERATED_BODY()
+ GENERATED_BODY()
 
-	FVector CornerPositions[8]; // 8 corner positions of a voxel
-	float CornerValues[8];       // Density values for each corner
+ FVector CornerPositions[8];  // 8 corners of a voxel
+ float CornerValues[8];       // Corresponding density values at the corners
 };
 
+/**
+ * Planet actor that generates procedural planets using marching cubes
+ */
 UCLASS()
 class SGD240PROCEDURAL_API APlanetActor : public AActor
 {
-	GENERATED_BODY()
+ GENERATED_BODY()
 
 public:
-	// Constructor
-	APlanetActor();
+ // Sets default values for this actor's properties
+ APlanetActor();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+ // Called when the game starts or when spawned
+ virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+ // Called every frame
+ virtual void Tick(float DeltaTime) override;
 
-	// Function to generate the planet's mesh
-	void GeneratePlanet();
+private:
+ // Procedural mesh component to hold the generated mesh
+ UPROPERTY(EditAnywhere, Category = "Planets")
+ UProceduralMeshComponent* PlanetMesh;
 
-	// Function to generate the voxel grid
-	void GenerateVoxelGrid(int GridSize, float VoxelSize);
+ // Radius of the planet
+ UPROPERTY(EditAnywhere, Category = "Planets")
+ float Radius;
 
-	// Function to assign density values
-	void AssignDensityValues(TArray<FVoxel>& Voxels, int GridSize, float VoxelSize);
+ // Function to generate the planet mesh
+ void GeneratePlanet();
 
-	// Marching Cubes algorithm to create the surface
-	void MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize);
+ // Function to generate the voxel grid
+ void GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxel>& OutVoxels);
 
-	// Interpolates the surface position along a voxel edge
-	FVector InterpolateEdge(const FVector& CornerA, const FVector& CornerB, float ValueA, float ValueB);
+ // Function to assign density values to the voxels
+ void AssignDensityValues(TArray<FVoxel>& Voxels, int GridSize, float VoxelSize);
 
-	// Procedural Mesh Component
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Planet")
-	UProceduralMeshComponent* PlanetMesh;
+ // Function to generate the mesh using marching cubes
+ void MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize);
 
-	// Edge and triangle tables
-	static const int EDGE_TABLE[256];
-	static const int TRI_TABLE[256][16];
-
-	// Planet Radius
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet")
-	float Radius;
+ // Function to interpolate the edge position
+ FVector InterpolateEdge(const FVector& CornerA, const FVector& CornerB, float ValueA, float ValueB);
 };
