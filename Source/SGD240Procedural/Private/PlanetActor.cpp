@@ -1,6 +1,8 @@
 #include "PlanetActor.h"
 #include "ProceduralMeshComponent.h"
 #include "MarchingCubesTable.h"
+#include "Materials/MaterialInterface.h"
+#include "KismetProceduralMeshLibrary.h"
 
 // Sets default values
 APlanetActor::APlanetActor()
@@ -13,7 +15,7 @@ APlanetActor::APlanetActor()
     PrimaryActorTick.bCanEverTick = true;
 
     // Set a default radius for the planet
-    Radius = 100.0f;  // Adjustable in the editor
+    Radius = 200.0f;  // Adjustable in the editor
 }
 
 // Called when the game starts or when spawned
@@ -131,15 +133,22 @@ FVector APlanetActor::InterpolateEdge(const FVector& CornerA, const FVector& Cor
 // Function to generate the planet
 void APlanetActor::GeneratePlanet()
 {
-    int GridSize = 50;
-    float VoxelSize = 10.0f;
+    int GridSize = 48; // Resolution
+    float VoxelSize = 16.0f; // Size of Each Voxel
 
     TArray<FVoxel> Voxels;
     GenerateVoxelGrid(GridSize, VoxelSize, Voxels);
-
-    TArray<FVector> Vertices;
-    TArray<int32> Triangles;
-    MarchingCubes(Voxels, Vertices, Triangles, GridSize);
-
-    PlanetMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, {}, {}, {}, {}, true);
+    
+     TArray<FVector> Vertices;
+        TArray<int32> Triangles;
+        MarchingCubes(Voxels, Vertices, Triangles, GridSize);
+       
+        // Update the procedural mesh component with the calculated normals and no UVs
+        PlanetMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, {}, {}, {}, {}, true);
+    
+        // Optional: Apply the material (if already set in the blueprint or elsewhere)
+        if (PlanetMaterial)
+        {
+            PlanetMesh->SetMaterial(0, PlanetMaterial);
+        } 
 }

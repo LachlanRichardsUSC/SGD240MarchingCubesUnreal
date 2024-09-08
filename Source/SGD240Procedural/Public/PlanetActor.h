@@ -34,6 +34,10 @@ protected:
 public:
  // Called every frame
  virtual void Tick(float DeltaTime) override;
+ 
+  // Planet material property, exposed to the editor
+     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet Settings")
+     UMaterialInterface* PlanetMaterial;  // Declare PlanetMaterial here
 
 private:
  // Procedural mesh component to hold the generated mesh
