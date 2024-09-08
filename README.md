@@ -7,5 +7,5 @@ Unreal Engine 5.4
 # IDE
 Jetbrains Rider
 
-# 3rd Party Plugins>
+# 3rd Party Plugins?
 No
