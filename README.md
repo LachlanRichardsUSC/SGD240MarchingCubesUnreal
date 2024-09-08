@@ -26,3 +26,11 @@ Jetbrains Rider
 
 # 3rd Party Plugins?
 No
+
+# References/Resources
+
+-  Polygonising a Scalar Field, Paul Bourke
+   https://paulbourke.net/geometry/polygonise/
+
+-  Sebastian Lague, Coding Adventures - Terraforming
+   https://www.youtube.com/watch?v=vTMEdHcKgM4&t=169s&pp=ygUbc2ViYXN0YW4gbGFndWUgdGVycmFmb3JtaW5n
