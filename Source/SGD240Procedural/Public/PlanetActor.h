@@ -6,18 +6,13 @@
 #include "MarchingCubesTable.h"
 #include "PlanetActor.generated.h"
 
-USTRUCT()
+// Define FVoxel struct to store corner positions and values
 struct FVoxel
 {
- GENERATED_BODY()
-
- FVector CornerPositions[8];  // 8 corners of a voxel
- float CornerValues[8];       // Corresponding density values at the corners
+ FVector CornerPositions[8]; // Positions of the 8 corners of a voxel
+ float CornerValues[8];       // Density values at each corner
 };
 
-/**
- * Planet actor that generates procedural planets using marching cubes
- */
 UCLASS()
 class SGD240PROCEDURAL_API APlanetActor : public AActor
 {
@@ -34,32 +29,23 @@ protected:
 public:
  // Called every frame
  virtual void Tick(float DeltaTime) override;
- 
-  // Planet material property, exposed to the editor
-     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet Settings")
-     UMaterialInterface* PlanetMaterial;  // Declare PlanetMaterial here
+    
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planet Settings")
+ UMaterialInterface* PlanetMaterial;
 
 private:
- // Procedural mesh component to hold the generated mesh
  UPROPERTY(EditAnywhere, Category = "Planets")
  UProceduralMeshComponent* PlanetMesh;
 
- // Radius of the planet
  UPROPERTY(EditAnywhere, Category = "Planets")
  float Radius;
 
- // Function to generate the planet mesh
  void GeneratePlanet();
-
- // Function to generate the voxel grid
  void GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxel>& OutVoxels);
-
- // Function to assign density values to the voxels
  void AssignDensityValues(TArray<FVoxel>& Voxels, int GridSize, float VoxelSize);
 
- // Function to generate the mesh using marching cubes
- void MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize);
+ // Declare MarchingCubes function with the correct signature
+ void MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize, float VoxelSize);
 
- // Function to interpolate the edge position
  FVector InterpolateEdge(const FVector& CornerA, const FVector& CornerB, float ValueA, float ValueB);
 };

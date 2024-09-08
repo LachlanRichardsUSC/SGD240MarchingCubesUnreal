@@ -3,6 +3,7 @@
 #include "MarchingCubesTable.h"
 #include "Materials/MaterialInterface.h"
 #include "KismetProceduralMeshLibrary.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values
 APlanetActor::APlanetActor()
@@ -15,7 +16,7 @@ APlanetActor::APlanetActor()
     PrimaryActorTick.bCanEverTick = true;
 
     // Set a default radius for the planet
-    Radius = 200.0f;  // Adjustable in the editor
+    Radius = 400.0f;  // Adjustable in the editor
 }
 
 // Called when the game starts or when spawned
@@ -36,6 +37,13 @@ void APlanetActor::Tick(float DeltaTime)
 // Function to generate the voxel grid
 void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxel>& OutVoxels)
 {
+    // Center the grid around (0, 0, 0)
+    FVector GridCenterOffset = FVector(GridSize / 2.0f) * VoxelSize;
+
+    // Actor Transforms for Visualization
+    FTransform ActorTransform = GetActorTransform();
+    FQuat ActorRotation = ActorTransform.GetRotation();
+    
     for (int x = 0; x < GridSize; x++)
     {
         for (int y = 0; y < GridSize; y++)
@@ -45,6 +53,10 @@ void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxe
                 FVoxel NewVoxel;
                 FVector BasePosition = FVector(x, y, z) * VoxelSize;
 
+                // Offset the base position to center the grid around (0, 0, 0)
+                BasePosition -= GridCenterOffset;
+
+                // Define the voxel corners based on the base position
                 NewVoxel.CornerPositions[0] = BasePosition;
                 NewVoxel.CornerPositions[1] = BasePosition + FVector(VoxelSize, 0, 0);
                 NewVoxel.CornerPositions[2] = BasePosition + FVector(VoxelSize, VoxelSize, 0);
@@ -55,6 +67,14 @@ void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxe
                 NewVoxel.CornerPositions[7] = BasePosition + FVector(0, VoxelSize, VoxelSize);
 
                 OutVoxels.Add(NewVoxel);
+
+                
+                FVector Center = BasePosition + FVector(VoxelSize / 2.0f);
+                FVector TransformedCenter = ActorTransform.TransformPosition(Center);
+                FVector TransformedScale = ActorTransform.GetScale3D() * (VoxelSize / 2.0f); 
+                DrawDebugBox(GetWorld(), TransformedCenter, TransformedScale, ActorRotation, FColor::Green, true, 20.0f);
+                
+
             }
         }
     }
@@ -66,21 +86,27 @@ void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxe
 // Function to assign density values based on distance from the planet's center
 void APlanetActor::AssignDensityValues(TArray<FVoxel>& Voxels, int GridSize, float VoxelSize)
 {
-    FVector PlanetCenter = FVector(GridSize / 2.0f) * VoxelSize;
+    // Center the sphere at (0, 0, 0)
+    FVector PlanetCenter = FVector(0, 0, 0);
 
     for (FVoxel& Voxel : Voxels)
     {
         for (int CornerIndex = 0; CornerIndex < 8; CornerIndex++)
         {
+            // Calculate the distance from the planet's center to each corner of the voxel
             float Distance = FVector::Dist(Voxel.CornerPositions[CornerIndex], PlanetCenter);
+
+            // Density value: positive if inside the sphere, negative if outside
             Voxel.CornerValues[CornerIndex] = Radius - Distance;
         }
     }
 }
 
 // Function to generate mesh using marching cubes
-void APlanetActor::MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize)
+void APlanetActor::MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertices, TArray<int32>& Triangles, int GridSize, float VoxelSize)
 {
+    
+    
     for (const FVoxel& Voxel : Voxels)
     {
         int VoxelConfig = 0;
@@ -102,11 +128,12 @@ void APlanetActor::MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertic
         {
             if (MarchingCubesTable::EDGE_TABLE[VoxelConfig] & (1 << i))
             {
-                EdgeVertices[i] = InterpolateEdge(
-                    Voxel.CornerPositions[MarchingCubesTable::EDGE_VERTICES[i][0]],
-                    Voxel.CornerPositions[MarchingCubesTable::EDGE_VERTICES[i][1]],
-                    Voxel.CornerValues[MarchingCubesTable::EDGE_VERTICES[i][0]],
-                    Voxel.CornerValues[MarchingCubesTable::EDGE_VERTICES[i][1]]);
+                FVector CornerA = Voxel.CornerPositions[MarchingCubesTable::EDGE_VERTICES[i][0]];
+                FVector CornerB = Voxel.CornerPositions[MarchingCubesTable::EDGE_VERTICES[i][1]];
+                float ValueA = Voxel.CornerValues[MarchingCubesTable::EDGE_VERTICES[i][0]];
+                float ValueB = Voxel.CornerValues[MarchingCubesTable::EDGE_VERTICES[i][1]];
+
+                EdgeVertices[i] = InterpolateEdge(CornerA, CornerB, ValueA, ValueB);
             }
         }
 
@@ -116,6 +143,7 @@ void APlanetActor::MarchingCubes(TArray<FVoxel>& Voxels, TArray<FVector>& Vertic
             Vertices.Add(EdgeVertices[MarchingCubesTable::TRI_TABLE[VoxelConfig][i]]);
             Vertices.Add(EdgeVertices[MarchingCubesTable::TRI_TABLE[VoxelConfig][i + 1]]);
             Vertices.Add(EdgeVertices[MarchingCubesTable::TRI_TABLE[VoxelConfig][i + 2]]);
+            
             Triangles.Add(VertexIndex);
             Triangles.Add(VertexIndex + 1);
             Triangles.Add(VertexIndex + 2);
@@ -133,22 +161,32 @@ FVector APlanetActor::InterpolateEdge(const FVector& CornerA, const FVector& Cor
 // Function to generate the planet
 void APlanetActor::GeneratePlanet()
 {
-    int GridSize = 48; // Resolution
-    float VoxelSize = 16.0f; // Size of Each Voxel
+    int GridSize = 16;  // Size of bounds for voxel grid (increase for more detail)
+    float VoxelSize = 64.0f;  // Size of each voxel - lower means more detail
 
     TArray<FVoxel> Voxels;
     GenerateVoxelGrid(GridSize, VoxelSize, Voxels);
     
-     TArray<FVector> Vertices;
-        TArray<int32> Triangles;
-        MarchingCubes(Voxels, Vertices, Triangles, GridSize);
-       
-        // Update the procedural mesh component with the calculated normals and no UVs
-        PlanetMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, {}, {}, {}, {}, true);
+    // Arrays to hold generated mesh data
+    TArray<FVector> Vertices;
+    TArray<int32> Triangles;
+    TArray<FVector> Normals;
+    TArray<FVector2D> UVs;
+    TArray<FLinearColor> VertexColors;
+    TArray<FProcMeshTangent> Tangents;
+
+    // Generate the mesh data using marching cubes
+    MarchingCubes(Voxels, Vertices, Triangles, GridSize, VoxelSize);
+
+    // Calculate normals and tangents
+    UKismetProceduralMeshLibrary::CalculateTangentsForMesh(Vertices, Triangles, UVs, Normals, Tangents);
+
+    // Update the procedural mesh component with the generated data
+    PlanetMesh->CreateMeshSection_LinearColor(0, Vertices, Triangles, Normals, UVs, VertexColors, Tangents, true);
     
-        // Optional: Apply the material (if already set in the blueprint or elsewhere)
-        if (PlanetMaterial)
-        {
-            PlanetMesh->SetMaterial(0, PlanetMaterial);
-        } 
+    // Optional: Apply the material (if already set in the blueprint or elsewhere)
+    if (PlanetMaterial)
+    {
+        PlanetMesh->SetMaterial(0, PlanetMaterial);
+    } 
 }
