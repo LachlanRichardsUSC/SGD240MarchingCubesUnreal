@@ -41,8 +41,8 @@ void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxe
     FVector GridCenterOffset = FVector(GridSize / 2.0f) * VoxelSize;
 
     // Actor Transforms for Visualization
-    FTransform ActorTransform = GetActorTransform();
-    FQuat ActorRotation = ActorTransform.GetRotation();
+    //FTransform ActorTransform = GetActorTransform();
+    //FQuat ActorRotation = ActorTransform.GetRotation();
     
     for (int x = 0; x < GridSize; x++)
     {
@@ -70,9 +70,9 @@ void APlanetActor::GenerateVoxelGrid(int GridSize, float VoxelSize, TArray<FVoxe
 
                 
                 FVector Center = BasePosition + FVector(VoxelSize / 2.0f);
-                FVector TransformedCenter = ActorTransform.TransformPosition(Center);
-                FVector TransformedScale = ActorTransform.GetScale3D() * (VoxelSize / 2.0f); 
-                DrawDebugBox(GetWorld(), TransformedCenter, TransformedScale, ActorRotation, FColor::Green, true, 20.0f);
+               // FVector TransformedCenter = ActorTransform.TransformPosition(Center);
+                //FVector TransformedScale = ActorTransform.GetScale3D() * (VoxelSize / 2.0f); 
+                //DrawDebugBox(GetWorld(), TransformedCenter, TransformedScale, ActorRotation, FColor::Green, true, 20.0f);
                 
 
             }
@@ -89,15 +89,27 @@ void APlanetActor::AssignDensityValues(TArray<FVoxel>& Voxels, int GridSize, flo
     // Center the sphere at (0, 0, 0)
     FVector PlanetCenter = FVector(0, 0, 0);
 
+    // Noise parameters
+    float NoiseScale = 0.01f; // Needs to be Clamped
+    float NoiseAmplitude = 75.0f; // Noise Strength
+
     for (FVoxel& Voxel : Voxels)
     {
         for (int CornerIndex = 0; CornerIndex < 8; CornerIndex++)
         {
-            // Calculate the distance from the planet's center to each corner of the voxel
-            float Distance = FVector::Dist(Voxel.CornerPositions[CornerIndex], PlanetCenter);
+            FVector CornerPosition = Voxel.CornerPositions[CornerIndex];
 
-            // Density value: positive if inside the sphere, negative if outside
-            Voxel.CornerValues[CornerIndex] = Radius - Distance;
+            // Calculate the distance from the planet's center to the voxel corner
+            float Distance = FVector::Dist(CornerPosition, PlanetCenter);
+
+            // Generate 3D Perlin noise based on the corner position
+            float NoiseValue = FMath::PerlinNoise3D(CornerPosition * NoiseScale);
+
+            // Adjust the noise amplitude to affect the terrain
+            NoiseValue *= NoiseAmplitude;
+
+            // Calculate the density value with added noise for surface variety
+            Voxel.CornerValues[CornerIndex] = (Radius - Distance) + NoiseValue;
         }
     }
 }
@@ -161,8 +173,8 @@ FVector APlanetActor::InterpolateEdge(const FVector& CornerA, const FVector& Cor
 // Function to generate the planet
 void APlanetActor::GeneratePlanet()
 {
-    int GridSize = 16;  // Size of bounds for voxel grid (increase for more detail)
-    float VoxelSize = 64.0f;  // Size of each voxel - lower means more detail
+    int GridSize = 192;  // Size of bounds for voxel grid (increase for more detail)
+    float VoxelSize = 16.0f;  // Size of each voxel - lower means more detail
 
     TArray<FVoxel> Voxels;
     GenerateVoxelGrid(GridSize, VoxelSize, Voxels);
