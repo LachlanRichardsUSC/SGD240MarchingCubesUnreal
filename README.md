@@ -18,14 +18,19 @@ Hurdles overcome so far:
 - Perlin3D noise to create more dynamic mesh
 - Normals are recalculated after mesh generation and deformation
 
+Hurdles to overcome:
+- Set up classes for compute shader in unreal (incl. readback to CPU)
+- Make meshing algorithm in compute shader
+  
+
 # Engine of Choice:
-Unreal Engine 5.4
+Unreal Engine 5.3.2
 
 # IDE
 Jetbrains Rider
 
-# 3rd Party Plugins?
-No
+# 3rd Party Plugins/API?
+ShadeUp
 
 # References/Resources
 
